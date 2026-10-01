@@ -210,6 +210,7 @@
       <h1>OSCE 電子評分系統</h1>
       <div style="display:inline-block; background:var(--partial-bg); color:var(--partial); font-weight:800; border-radius:8px; padding:3px 12px; margin-bottom:8px;">考官練習版（虛擬考生）</div>
       <p>選擇考站與身分後開始評分，資料自動離線儲存</p>
+      <p id="cloudNote" style="margin-top:6px; font-weight:700;"></p>
     </div>
     <div class="card card-pad">
       <label class="fld" style="margin-top:0;"><span>考站（依你負責的座位選擇，例如 A1、B3）</span>
@@ -320,6 +321,13 @@
 
 <script>
 "use strict";
+
+/* =========================================================================
+   ☁ 雲端試算表設定：把 Google Apps Script 部署後的「網頁應用程式網址」
+   貼在下面的引號中（以 https://script.google.com/macros/s/ 開頭、/exec 結尾）。
+   留空＝純離線模式，功能與原本相同。
+   ========================================================================= */
+var SHEET_URL = "";
 
 /* =========================================================================
    1) OSCE 題庫設定（資料驅動）
@@ -580,7 +588,7 @@ function updateRecCount(){
 function goManage(){
   hide($("startScreen")); hide($("scoreScreen")); show($("manageScreen"));
   $("actionBar").style.display="none"; $("avgBadge").style.display="none"; $("btnManage").style.display="none";
-  renderRecords(); window.scrollTo(0,0);
+  syncPending(); renderRecords(); window.scrollTo(0,0);
 }
 
 /* =========================================================================
@@ -635,7 +643,7 @@ $("btnStart").onclick=function(){
     if(state.editingIndex!=null){ state.current=(rec&&rec.editBuf)?rec.editBuf:blankCurrent(); state.savedLive=(rec&&rec.manualDraft)?rec.manualDraft:blankCurrent(); }
     else { state.current=(rec&&rec.manualDraft)?rec.manualDraft:blankCurrent(); state.savedLive=null; }
   }
-  buildScoreScreen(); goScore();
+  buildScoreScreen(); goScore(); syncPending();
 };
 
 /* =========================================================================
@@ -716,7 +724,7 @@ function skipActive(){
   if(ix>=0) state.records[ix]=absentRec; else state.records.push(absentRec);
   delete state.drafts[ri];
   var nxt=nextUnscoredRi(); if(nxt<0){ state.activeRi=null; state.current=blankCurrent(); } else loadRi(nxt);
-  persist(); buildScoreScreen(); updateRecCount(); window.scrollTo(0,0); toast(nm+" 已標記未到");
+  persist(); uploadRecord(absentRec); buildScoreScreen(); updateRecCount(); window.scrollTo(0,0); toast(nm+" 已標記未到");
 }
 /* 名單模式：取消對某位的修改（丟棄未存的變更）*/
 function cancelActiveEdit(){
@@ -916,7 +924,7 @@ $("btnSaveNext").onclick=function(){
     delete state.drafts[ri];
     var nxt=nextUnscoredRi();
     if(nxt<0){ state.activeRi=null; state.current=blankCurrent(); } else loadRi(nxt);
-    persist(); updateRecCount();
+    persist(); updateRecCount(); uploadRecord(snap);
     if(wasEdit){ toast("已更新："+snap.student); goManage(); return; }
     buildScoreScreen(); window.scrollTo(0,0);
     toast("已儲存："+snap.student+"　平均 "+snap.avg.toFixed(2)+" 分");
@@ -931,11 +939,11 @@ $("btnSaveNext").onclick=function(){
     state.records[state.editingIndex]=snap;
     var nm=snap.student;
     state.current=state.savedLive||blankCurrent(); state.savedLive=null; state.editingIndex=null;
-    persist(); updateRecCount();
+    persist(); updateRecCount(); uploadRecord(snap);
     toast("已更新："+nm); goManage(); return;
   }
   snap.savedAt=Date.now();
-  state.records.push(snap); state.current=blankCurrent(); persist();
+  state.records.push(snap); state.current=blankCurrent(); persist(); uploadRecord(snap);
   buildScoreScreen(); updateRecCount(); window.scrollTo(0,0);
   toast("已儲存："+snap.student+"　平均 "+snap.avg.toFixed(2)+" 分");
 };
@@ -947,7 +955,8 @@ $("btnPrintAll").onclick=printAll;
 /* =========================================================================
    名單管理
    ========================================================================= */
-function rowStatusHtml(r){
+function rowStatusHtml(r){ return rowStatusHtml0(r)+cloudTag(r); }
+function rowStatusHtml0(r){
   if(!r) return '尚未評分　<span class="edithint">✎ 點此開始評分</span>';
   if(r.absent) return '🚫未到　<span class="edithint">✎ 點此回到表單評分</span>';
   if(isIncomplete(r)) return '<span style="color:var(--accent); font-weight:800;">⚠ 未完成</span>　整體 '+(r.overall||"–")+' 分　'+fmtTime(r.savedAt)+'　<span class="edithint">✎ 點此補齊</span>';
@@ -960,6 +969,15 @@ function incompleteCount(){
 }
 function renderRecords(){
   var box=$("recList"); box.innerHTML="";
+  if(cloudOn() && state.records.length){
+    var okN=state.records.filter(function(r){ return r.sync==="ok"; }).length, totN=state.records.length;
+    var cw=document.createElement("div"); cw.className="card-pad";
+    cw.style.cssText="border-bottom:1px solid var(--line); font-weight:700; "+(okN===totN?"background:var(--full-bg); color:var(--full);":"background:var(--none-bg); color:var(--none);");
+    cw.innerHTML = okN===totN ? "☁ 全部 "+totN+" 筆已上傳雲端試算表"
+      : "☁ 已上傳 "+okN+"／"+totN+" 筆　<button class='btn mini' id='btnResync' style='margin-left:6px;'>重新上傳</button>";
+    box.appendChild(cw);
+    var rb=cw.querySelector("#btnResync"); if(rb) rb.onclick=function(){ state.records.forEach(function(r){ if(r.sync!=="ok") r.sync="fail"; }); syncPending(); toast("重新上傳中…"); };
+  }
   var inc=incompleteCount();
   if(inc>0){
     var w=document.createElement("div"); w.className="card-pad";
@@ -989,7 +1007,7 @@ function renderRecords(){
         var dbtn=document.createElement("button"); dbtn.className="btn danger mini"; dbtn.textContent="清除成績"; dbtn.style.marginLeft="6px";
         dbtn.onclick=function(e){ e.stopPropagation();
           if(confirm("清除「"+nm+"」的評分結果？名字會保留，可重新評分。")){
-            var ix=recIndexByRi(ri); if(ix>=0) state.records.splice(ix,1); delete state.drafts[ri];
+            var ix=recIndexByRi(ri); if(ix>=0){ deleteRemote(state.records[ix]); state.records.splice(ix,1); } delete state.drafts[ri];
             if(state.activeRi==null){ var nxt=nextUnscoredRi(); if(nxt>=0) loadRi(nxt); }
             persist(); renderRecords(); updateRecCount();
           } };
@@ -1015,7 +1033,7 @@ function renderRecords(){
       pbtn.onclick=function(e){ e.stopPropagation(); printRecord(r); }; el.appendChild(pbtn);
     }
     var dbtn=document.createElement("button"); dbtn.className="btn danger mini"; dbtn.textContent="刪除"; dbtn.style.marginLeft="6px";
-    dbtn.onclick=function(e){ e.stopPropagation(); if(confirm("刪除 "+r.student+" 的紀錄？")){ state.records.splice(i,1); persist(); renderRecords(); updateRecCount(); } };
+    dbtn.onclick=function(e){ e.stopPropagation(); if(confirm("刪除 "+r.student+" 的紀錄？")){ deleteRemote(r); state.records.splice(i,1); persist(); renderRecords(); updateRecCount(); } };
     el.appendChild(dbtn);
     box.appendChild(el);
   });
@@ -1024,7 +1042,7 @@ function renderRecords(){
 /* =========================================================================
    CSV
    ========================================================================= */
-function buildCSV(){
+function csvHead(){
   var items=currentItems();
   var head=["序","時間","考間","考站","卷別","考官","學號","考生姓名"];
   items.forEach(function(it,i){
@@ -1032,14 +1050,11 @@ function buildCSV(){
     if(it.type==="checklist") head.push("第"+(i+1)+"題_品項明細");
   });
   head.push("平均分","整體表現","總成績","考官回饋");
-  var rows=[head];
-  // 名單模式依名單順序輸出（含未評/未到）；手動模式依儲存順序
-  var listPairs;
-  if(hasRoster()){ listPairs=rosterList().map(function(nm,ri){ return { seq:ri+1, name:nm, r:recByRi(ri) }; }); }
-  else { listPairs=state.records.map(function(r,i){ return { seq:i+1, name:r.student, r:r }; }); }
-  listPairs.forEach(function(p){
-    var r=p.r;
-    var row=[ p.seq, r?fmtTime(r.savedAt):"", roomLabel(state.station,state.form), STATIONS[state.station].name, state.form, state.examiner, studentId(p.name), p.name ];
+  return head;
+}
+function csvRow(seq, name, r){
+  var items=currentItems();
+    var row=[ seq, r?fmtTime(r.savedAt):"", roomLabel(state.station,state.form), STATIONS[state.station].name, state.form, state.examiner, studentId(name), name ];
     items.forEach(function(it,i){
       var rec=(r&&r.items&&r.items[i])||{};
       var blank=(!r||r.absent);
@@ -1056,10 +1071,57 @@ function buildCSV(){
     if(r&&!r.absent&&isIncomplete(r)) totalStr=(totalStr?totalStr+" ":"")+"⚠未完成";
     row.push(totalStr);
     row.push((r&&r.feedback||"").replace(/\n/g," "));
-    rows.push(row);
-  });
+  return row;
+}
+function buildCSV(){
+  var rows=[csvHead()];
+  // 名單模式依名單順序輸出（含未評/未到）；手動模式依儲存順序
+  var listPairs;
+  if(hasRoster()){ listPairs=rosterList().map(function(nm,ri){ return { seq:ri+1, name:nm, r:recByRi(ri) }; }); }
+  else { listPairs=state.records.map(function(r,i){ return { seq:i+1, name:r.student, r:r }; }); }
+  listPairs.forEach(function(p){ rows.push(csvRow(p.seq, p.name, p.r)); });
   return rows.map(function(rr){ return rr.map(function(c){ c=String(c==null?"":c); if(/[",\n]/.test(c)) c='"'+c.replace(/"/g,'""')+'"'; return c; }).join(","); }).join("\r\n");
 }
+/* =========================================================================
+   ☁ 雲端同步（Google 試算表）
+   每筆紀錄以「考間｜考官｜考生」為唯一鍵：同一考官修改同一考生會更新同一列。
+   上傳失敗會保留在本機，恢復連線或開啟名單時自動補傳。
+   ========================================================================= */
+function cloudOn(){ return !!SHEET_URL; }
+function recKey(r){ return roomLabel(state.station,state.form)+"｜"+state.examiner+"｜"+(r.student||""); }
+function postSheet(obj){
+  return fetch(SHEET_URL,{ method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(obj) })
+    .then(function(res){ return res.json(); })
+    .then(function(j){ if(!j||!j.ok) throw new Error((j&&j.error)||"上傳失敗"); return j; });
+}
+function uploadRecord(r, quiet){
+  if(!cloudOn()||!r) return;
+  var key=recKey(r), ver=(r.savedAt||0)+"_"+(r.edited||0);
+  r.sync="pending"; r.syncKey=key;
+  var head=csvHead().slice(1), row=csvRow(0, r.student, r).slice(1);
+  postSheet({ action:"upsert", key:key, headers:head, row:row })
+    .then(function(){ if(((r.savedAt||0)+"_"+(r.edited||0))===ver) r.sync="ok"; persist(); refreshCloudUI(); })
+    .catch(function(){ r.sync="fail"; persist(); refreshCloudUI();
+      if(!quiet) toast("⚠ 雲端上傳失敗，已存本機，連線後會自動補傳"); });
+}
+function deleteRemote(r){
+  if(!cloudOn()||!r||!r.sync) return;
+  postSheet({ action:"delete", key:r.syncKey||recKey(r) })
+    .catch(function(){ toast("⚠ 雲端刪除失敗，請到試算表手動刪除該列"); });
+}
+function syncPending(){
+  if(!cloudOn()||!state.station) return;
+  state.records.forEach(function(r){ if(r.sync!=="ok" && r.sync!=="pending") uploadRecord(r, true); });
+}
+function refreshCloudUI(){ if(!$("manageScreen").classList.contains("hidden")) renderRecords(); }
+function cloudTag(r){
+  if(!cloudOn()||!r) return "";
+  if(r.sync==="ok") return '　<span style="color:var(--full); font-weight:700;">☁已上傳</span>';
+  if(r.sync==="pending") return '　<span style="color:var(--muted); font-weight:700;">⏳上傳中</span>';
+  return '　<span style="color:var(--none); font-weight:700;">⚠未上傳</span>';
+}
+window.addEventListener("online", function(){ syncPending(); });
+
 function csvFilename(){ return "OSCE_"+roomLabel(state.station,state.form)+"_"+STATIONS[state.station].name+"_"+ymd()+".csv"; }
 $("btnExportCsv").onclick=function(){
   if(state.records.length===0){ toast("尚無紀錄可匯出"); return; }
@@ -1243,7 +1305,7 @@ Array.prototype.forEach.call(document.querySelectorAll("#fontSeg button"),functi
 });
 function initFont(){ var i=0; try{ i=parseInt(localStorage.getItem("osce_practice_font")||"0",10)||0; }catch(e){} applyFont(i); }
 
-window.addEventListener("load",function(){ applyImportedRoster(); initFont(); initStart(); initExamSig(); goStart(); });
+window.addEventListener("load",function(){ var cn=$("cloudNote"); if(cn){ cn.textContent=cloudOn()?"☁ 已連接雲端試算表，儲存時會即時上傳":"（未設定雲端網址，目前為離線模式）"; cn.style.color=cloudOn()?"var(--full)":"var(--muted)"; } applyImportedRoster(); initFont(); initStart(); initExamSig(); goStart(); });
 </script>
 </body>
 </html>
