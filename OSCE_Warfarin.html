@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>OSCE 電子評分系統</title>
+<title>OSCE 電子評分系統（考官練習版）</title>
 <style>
   :root{
     --bg:#f4f6f8; --card:#ffffff; --ink:#1f2933; --muted:#66727e;
@@ -182,7 +182,7 @@
 <header class="top" id="topbar">
   <div class="top-in">
     <div>
-      <div class="top-title" id="topTitle">OSCE 電子評分</div>
+      <div class="top-title" id="topTitle">OSCE 電子評分（練習）</div>
       <div class="top-sub" id="topSub"></div>
     </div>
     <div class="top-spacer"></div>
@@ -208,6 +208,7 @@
   <section id="startScreen">
     <div class="start-hero">
       <h1>OSCE 電子評分系統</h1>
+      <div style="display:inline-block; background:var(--partial-bg); color:var(--partial); font-weight:800; border-radius:8px; padding:3px 12px; margin-bottom:8px;">考官練習版（虛擬考生）</div>
       <p>選擇考站與身分後開始評分，資料自動離線儲存</p>
     </div>
     <div class="card card-pad">
@@ -392,16 +393,12 @@ var STATIONS = {
 };
 
 /* =========================================================================
-   2) 考生名單（AB 卷題目相同，只差考生；每站每卷各一份，順序寫死）
-   -------------------------------------------------------------------------
-   來源：115.09.11 實習生 OSCE 測驗時程表。每位考官固定一考場，名單即為該
-   考場跨三梯次由左到右的學生序；卷別 A＝A 組、卷別 B＝B 組。
-   warfarin（A1）題目尚未建置，名單已備妥，等題目加入即自動生效。
+   2) 考生名單（考官練習版：五位虛擬考生，AB 卷相同）
    ========================================================================= */
 var ROSTER = {
   "warfarin": {
-    "A": ["李亦安","房聖翔","陳佳慧","莊琬柔","何宜瑾","李韋綾","高宇暘","黃浩恩","曹祐嘉","王冠仁","古芸庭","林悅琳"],
-    "B": ["林言愛","林千蘏","宋俊毅","林泰宇","蘇泓維","游舒涵","林捷勝","陳筱涵","鄭鶴淋","賴芝融","曾馨儀","楊博丞"]
+    "A": ["王小明","陳大華","林美麗","張阿強","李好棒"],
+    "B": ["王小明","陳大華","林美麗","張阿強","李好棒"]
   }
 };
 
@@ -441,7 +438,7 @@ var OVERALL_LABELS = [
 /* =========================================================================
    儲存
    ========================================================================= */
-var LS_KEY = "osce_scorer_v2";
+var LS_KEY = "osce_practice_v1"; // 練習版獨立儲存，不與正式考試資料混用
 var mem = null;
 function loadDB(){ try{ var raw=localStorage.getItem(LS_KEY); return raw?JSON.parse(raw):{}; }catch(e){ return mem||{}; } }
 function saveDB(db){ try{ localStorage.setItem(LS_KEY, JSON.stringify(db)); }catch(e){ mem=db; } }
@@ -564,7 +561,7 @@ function hide(el){ el.classList.add("hidden"); }
 function goStart(){
   show($("startScreen")); hide($("scoreScreen")); hide($("manageScreen"));
   $("actionBar").style.display="none"; $("avgBadge").style.display="none"; $("btnManage").style.display="none";
-  $("topTitle").textContent="OSCE 電子評分"; $("topSub").textContent="";
+  $("topTitle").textContent="OSCE 電子評分（練習）"; $("topSub").textContent="";
   loadExamSigToCanvas(); refreshResumeNote();
 }
 function goScore(){
@@ -1239,12 +1236,12 @@ function applyFont(i){
   if(i===1) document.body.classList.add("sz2"); else if(i===2) document.body.classList.add("sz3");
   var segs=document.querySelectorAll("#fontSeg button");
   Array.prototype.forEach.call(segs,function(bt){ bt.classList.toggle("on", parseInt(bt.dataset.sz,10)===i); });
-  try{ localStorage.setItem("osce_font", i); }catch(e){}
+  try{ localStorage.setItem("osce_practice_font", i); }catch(e){}
 }
 Array.prototype.forEach.call(document.querySelectorAll("#fontSeg button"),function(bt){
   bt.onclick=function(){ applyFont(parseInt(bt.dataset.sz,10)); };
 });
-function initFont(){ var i=0; try{ i=parseInt(localStorage.getItem("osce_font")||"0",10)||0; }catch(e){} applyFont(i); }
+function initFont(){ var i=0; try{ i=parseInt(localStorage.getItem("osce_practice_font")||"0",10)||0; }catch(e){} applyFont(i); }
 
 window.addEventListener("load",function(){ applyImportedRoster(); initFont(); initStart(); initExamSig(); goStart(); });
 </script>
