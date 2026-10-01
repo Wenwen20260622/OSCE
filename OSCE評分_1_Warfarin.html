@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>OSCE 電子評分系統</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#ffffff; --ink:#1f2933; --muted:#66727e;
+    --line:#dfe4ea; --brand:#2c6e7f; --brand-d:#1f5361;
+    --full:#1e874b; --full-bg:#e7f5ec;
+    --partial:#c77a12; --partial-bg:#fdf3e2;
+    --none:#b23b3b; --none-bg:#fbecec;
+    --accent:#b0472f;
+    --shadow:0 2px 8px rgba(31,41,51,.06);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.55;
+    font-size:17px; -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:820px; margin:0 auto; padding:0 14px 120px;}
+  .hidden{display:none !important;}
+
+  header.top{position:sticky; top:0; z-index:40; background:var(--brand); color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.15);}
+  .top-in{max-width:820px; margin:0 auto; padding:10px 14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+  .top-title{font-weight:700; font-size:18px;}
+  .top-sub{font-size:13px; opacity:.9;}
+  .top-spacer{flex:1;}
+  .avg-badge{background:#fff; color:var(--brand-d); border-radius:12px; padding:6px 14px; font-weight:800; font-size:15px; text-align:center; line-height:1.2; min-width:96px;}
+  .avg-badge small{display:block; font-weight:600; font-size:11px; color:var(--muted);}
+  .avg-badge.as-btn{font-family:inherit; cursor:pointer; border:none;}
+  .fontseg{display:flex; gap:3px; align-items:center; background:#fff; border-radius:12px; padding:4px 5px;}
+  .fontseg button{font-family:inherit; border:1px solid var(--line); background:#fff; color:var(--brand-d); border-radius:7px; min-width:30px; height:34px; line-height:1; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0 7px;}
+  .fontseg button.on{background:var(--brand); color:#fff; border-color:var(--brand);}
+  .avg-badge.as-btn span{color:var(--brand-d); font-size:16px;}
+  .avg-badge.as-btn:active{transform:scale(.97);}
+
+  h2.sec{font-size:15px; color:var(--muted); margin:22px 4px 8px; font-weight:700; letter-spacing:.5px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); margin:12px 0; overflow:hidden;}
+  .card-pad{padding:16px 16px;}
+
+  .start-hero{text-align:center; padding:34px 16px 10px;}
+  .start-hero h1{font-size:24px; margin:0 0 6px; color:var(--brand-d);}
+  .start-hero p{color:var(--muted); margin:0; font-size:15px;}
+  label.fld{display:block; margin:14px 0 0;}
+  label.fld > span{display:block; font-weight:700; margin-bottom:6px; font-size:15px;}
+  select,input[type=text],textarea{width:100%; font-size:17px; font-family:inherit; color:var(--ink); padding:13px 14px; border:1.5px solid var(--line); border-radius:11px; background:#fff;}
+  select:focus,input:focus,textarea:focus{outline:none; border-color:var(--brand);}
+  textarea{min-height:96px; resize:vertical;}
+
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; font-size:17px; font-weight:700; cursor:pointer; border:none; border-radius:12px; padding:14px 18px; background:var(--brand); color:#fff; transition:transform .05s ease, background .15s;}
+  .btn:active{transform:scale(.98);}
+  .btn.block{width:100%;}
+  .btn.ghost{background:#fff; color:var(--brand-d); border:1.5px solid var(--brand);}
+  .btn.grey{background:#eef1f4; color:var(--ink); border:1.5px solid var(--line);}
+  .btn.danger{background:#fff; color:var(--none); border:1.5px solid var(--none);}
+  .btn.lg{padding:16px 20px; font-size:18px;}
+  .btn-row{display:flex; gap:10px; flex-wrap:wrap;}
+  .btn-row .btn{flex:1; min-width:130px;}
+
+  .item{border:1px solid var(--line); border-radius:14px; background:#fff; margin:12px 0; box-shadow:var(--shadow);}
+  .item-head{padding:14px 16px 10px; border-bottom:1px dashed var(--line);}
+  .item-no{display:inline-block; background:var(--brand); color:#fff; font-weight:800; font-size:14px; border-radius:8px; padding:2px 10px; margin-right:8px;}
+  .item-title{font-weight:800; font-size:19px;}
+  .item-desc{color:#3f4a55; font-size:16px; margin-top:5px;}
+  .item-rule{color:#3f4a55; font-size:15px; margin-top:6px; background:#f7f9fa; border-radius:8px; padding:7px 10px;}
+
+  .subitems{padding:6px 12px 4px;}
+  .sub{display:flex; align-items:flex-start; gap:12px; padding:12px 8px; border-radius:10px; cursor:pointer; user-select:none; border:1px solid transparent;}
+  .sub:active{background:#f2f6f7;}
+  .sub .box{flex:none; width:28px; height:28px; border:2px solid var(--brand); border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff; margin-top:1px; background:#fff; transition:background .12s;}
+  .sub.on .box{background:var(--full); border-color:var(--full);}
+  .sub .txt{flex:1; font-size:16px;}
+  .sub.on .txt{color:var(--ink);}
+
+  .levels{display:flex; gap:8px; padding:12px;}
+  .lvl{flex:1; text-align:center; padding:14px 6px; border-radius:11px; font-weight:800; font-size:16px; border:2px solid var(--line); background:#fff; color:var(--muted); cursor:pointer; line-height:1.25;}
+  .lvl small{display:block; font-weight:700; font-size:15px; opacity:.95; margin-top:4px; line-height:1.3;}
+  .lvl.sel.full{background:var(--full-bg); border-color:var(--full); color:var(--full);}
+  .lvl.sel.partial{background:var(--partial-bg); border-color:var(--partial); color:var(--partial);}
+  .lvl.sel.none{background:var(--none-bg); border-color:var(--none); color:var(--none);}
+  .lvl.disabled{opacity:.35; pointer-events:none;}
+  .auto-tag{font-size:14px; color:var(--muted); padding:0 12px 12px;}
+  /* 字級調整（老花友善）：大 / 特大 */
+  body.sz2 .item-title{font-size:22px;} body.sz2 .item-desc{font-size:18px;} body.sz2 .item-rule{font-size:17px;}
+  body.sz2 .sub .txt{font-size:19px;} body.sz2 .sub .box{width:32px; height:32px;} body.sz2 .lvl{font-size:19px;} body.sz2 .lvl small{font-size:18px;}
+  body.sz2 .auto-tag{font-size:16px;} body.sz2 .rate{font-size:17px;} body.sz2 .pass-btn{font-size:19px;} body.sz2 textarea,body.sz2 .fb-chip{font-size:16px;}
+  body.sz2 h2.sec{font-size:17px;} body.sz2 .stu-confirm{font-size:15px;} body.sz2 .fb-hint{font-size:15px;} body.sz2 .item-no{font-size:16px;}
+  body.sz2 .stu-card .nmv{font-size:30px;} body.sz2 .stu-card .lbl{font-size:14px;} body.sz2 #passAvg,body.sz2 .pass-row+div{font-size:16px;}
+  body.sz3 .item-title{font-size:26px;} body.sz3 .item-desc{font-size:21px;} body.sz3 .item-rule{font-size:20px;}
+  body.sz3 .sub .txt{font-size:23px;} body.sz3 .sub .box{width:36px; height:36px;} body.sz3 .lvl{font-size:22px;} body.sz3 .lvl small{font-size:21px;}
+  body.sz3 .auto-tag{font-size:18px;} body.sz3 .rate{font-size:19px;} body.sz3 .pass-btn{font-size:22px;} body.sz3 textarea,body.sz3 .fb-chip{font-size:18px;}
+  body.sz3 h2.sec{font-size:19px;} body.sz3 .stu-confirm{font-size:17px;} body.sz3 .fb-hint{font-size:17px;} body.sz3 .item-no{font-size:18px;}
+  body.sz3 .stu-card .nmv{font-size:34px;} body.sz3 .stu-card .lbl{font-size:16px;} body.sz3 #passAvg,body.sz3 .pass-row+div{font-size:18px;}
+  .auto-tag b{color:var(--brand-d);}
+  .override-tag{color:var(--accent); font-weight:700;}
+
+  .rating{display:flex; gap:7px; flex-wrap:wrap;}
+  .rate{flex:1; min-width:60px; text-align:center; padding:12px 4px; border:2px solid var(--line); border-radius:11px; cursor:pointer; font-weight:800; background:#fff; color:var(--muted); line-height:1.2;}
+  .rate small{display:block; font-size:11px; font-weight:600;}
+  .rate.sel{background:var(--brand); color:#fff; border-color:var(--brand);}
+
+  .pass-row{display:flex; gap:10px;}
+  .pass-btn{flex:1; text-align:center; padding:15px; border-radius:12px; border:2px solid var(--line); font-weight:800; font-size:17px; cursor:pointer; background:#fff; color:var(--muted);}
+  .pass-btn.sel-pass{background:var(--full-bg); border-color:var(--full); color:var(--full);}
+  .pass-btn.sel-fail{background:var(--none-bg); border-color:var(--none); color:var(--none);}
+
+  /* current student panel */
+  .stu-card{background:linear-gradient(135deg,#2c6e7f,#1f5361); color:#fff; border-radius:14px; padding:16px 18px; box-shadow:var(--shadow); display:flex; align-items:center; gap:14px;}
+  .stu-card .prog{flex:none; text-align:center; background:rgba(255,255,255,.16); border-radius:12px; padding:8px 12px; font-weight:800; line-height:1.15;}
+  .stu-card .prog small{display:block; font-weight:600; font-size:11px; opacity:.9;}
+  .stu-card .nm{flex:1;}
+  .stu-card .nm .lbl{font-size:12px; opacity:.85;}
+  .stu-card .nm .nmv{font-size:26px; font-weight:800; letter-spacing:1px;}
+  .stu-card .skip{flex:none;}
+  .stu-card .skip button{background:rgba(255,255,255,.16); color:#fff; border:1px solid rgba(255,255,255,.5); border-radius:10px; padding:8px 12px; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer;}
+  .stu-card.edit{background:linear-gradient(135deg,#b0472f,#7d2f1f);}
+  .stu-card .cancel button{background:rgba(255,255,255,.16); color:#fff; border:1px solid rgba(255,255,255,.5); border-radius:10px; padding:8px 12px; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer;}
+  .rec .who{cursor:pointer; border-radius:8px;}
+  .rec .who:active{opacity:.55;}
+  .rec .edithint{font-size:11px; color:var(--brand); font-weight:700;}
+  .stu-confirm{font-size:13px; color:var(--muted); margin:8px 4px 0;}
+  .done-card{text-align:center; padding:26px 18px;}
+  .done-card .big{font-size:20px; font-weight:800; color:var(--brand-d);}
+
+  /* feedback presets */
+  .fb-group{margin-bottom:12px;}
+  .fb-grouplab{font-size:13px; font-weight:800; margin-bottom:6px;}
+  .fb-grouplab.pos{color:var(--full);} .fb-grouplab.imp{color:var(--partial);}
+  .fb-presets{display:flex; flex-wrap:wrap; gap:8px;}
+  .fb-chip{border:1.5px solid var(--line); color:var(--ink); background:#fff; border-radius:20px; padding:8px 14px; font-size:14px; font-weight:700; cursor:pointer;}
+  .fb-chip.pos{border-color:var(--full); color:var(--full);} .fb-chip.pos:active{background:var(--full-bg);}
+  .fb-chip.imp{border-color:var(--partial); color:var(--partial);} .fb-chip.imp:active{background:var(--partial-bg);}
+  .fb-hint{font-size:13px; color:var(--muted); margin-top:8px;}
+
+  /* signature */
+  .sigwrap{border:1.5px dashed var(--line); border-radius:12px; background:#fff; position:relative; margin-top:6px;}
+  canvas.sig{width:100%; height:200px; display:block; border-radius:12px; touch-action:none;}
+  .sig-hint{position:absolute; left:14px; top:12px; color:#c3cbd3; font-size:14px; pointer-events:none;}
+
+  .actionbar{position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); box-shadow:0 -2px 10px rgba(0,0,0,.06); z-index:45;}
+  .actionbar-in{max-width:820px; margin:0 auto; padding:10px 14px; display:flex; gap:10px;}
+  .actionbar .btn{flex:1;}
+
+  .toast{position:fixed; left:50%; bottom:88px; transform:translateX(-50%); background:#1f2933; color:#fff; padding:12px 20px; border-radius:24px; font-weight:700; z-index:80; opacity:0; transition:opacity .25s; pointer-events:none; box-shadow:0 4px 14px rgba(0,0,0,.25);}
+  .toast.show{opacity:1;}
+
+  .rec{display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  .rec:last-child{border-bottom:none;}
+  .rec .who{flex:1; min-width:140px;}
+  .rec .who b{font-size:16px;}
+  .rec .who small{display:block; color:var(--muted); font-size:13px;}
+  .rec .sc{font-weight:800; color:var(--brand-d); font-size:18px;}
+  .mini{padding:8px 12px; font-size:14px; border-radius:9px;}
+  .field-inline{display:flex; gap:12px;}
+  .field-inline > *{flex:1;}
+
+  #printArea{display:none;}
+  @media print{
+    body{background:#fff; font-size:12px;}
+    header.top,.actionbar,.no-print,.toast{display:none !important;}
+    .wrap{display:none !important;}
+    #printArea{display:block !important; padding:0; margin:0;}
+    .p-sheet{page-break-after:always;}
+  }
+  #printArea .p-sheet{max-width:760px; margin:0 auto; padding:20px; color:#000; font-family:"PingFang TC","Noto Sans TC",serif;}
+  #printArea h1{font-size:20px; border-bottom:3px double #000; padding-bottom:6px; margin:0 0 4px;}
+  #printArea .p-meta{display:flex; justify-content:space-between; font-size:13px; margin:8px 0;}
+  #printArea table{width:100%; border-collapse:collapse; margin-top:8px;}
+  #printArea th,#printArea td{border:1px solid #000; padding:6px 8px; font-size:12.5px; vertical-align:top;}
+  #printArea th{background:#eee;}
+  #printArea .p-sub{font-size:11.5px; color:#222;}
+  #printArea .ck{font-weight:700;}
+</style>
+</head>
+<body>
+
+<header class="top" id="topbar">
+  <div class="top-in">
+    <div>
+      <div class="top-title" id="topTitle">OSCE 電子評分</div>
+      <div class="top-sub" id="topSub"></div>
+    </div>
+    <div class="top-spacer"></div>
+    <div class="fontseg" id="fontSeg" title="調整字體大小（A 越大字越大）">
+      <button type="button" data-sz="0" class="on" style="font-size:13px;">A</button>
+      <button type="button" data-sz="1" style="font-size:18px;">A</button>
+      <button type="button" data-sz="2" style="font-size:23px;">A</button>
+    </div>
+    <div class="avg-badge" id="avgBadge" style="display:none;">
+      <span id="avgVal">–</span>
+      <small>平均分</small>
+    </div>
+    <button type="button" class="avg-badge as-btn" id="btnManage" style="display:none;">
+      <span id="recCount">0</span>
+      <small>📋 名單</small>
+    </button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ START SCREEN ============ -->
+  <section id="startScreen">
+    <div class="start-hero">
+      <h1>OSCE 電子評分系統</h1>
+      <p>選擇考站與身分後開始評分，資料自動離線儲存</p>
+    </div>
+    <div class="card card-pad">
+      <label class="fld" style="margin-top:0;"><span>考站（依你負責的座位選擇，例如 A1、B3）</span>
+        <select id="selStation"></select>
+      </label>
+      <label class="fld"><span>考官姓名</span>
+        <input type="text" id="inpExaminer" placeholder="請輸入評分考官姓名" autocomplete="off">
+      </label>
+
+      <label class="fld"><span>考官簽名（簽一次即可，會自動套用到你評分的每一位考生）</span></label>
+      <div class="sigwrap">
+        <canvas class="sig" id="examSig"></canvas>
+        <div class="sig-hint" id="examSigHint">用手指在此簽名（選填；不簽則印出姓名）</div>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+        <button class="btn grey mini" id="btnClearExamSig">清除簽名</button>
+        <span id="examSigStatus" style="font-size:13px; color:var(--muted);"></span>
+      </div>
+
+      <div style="height:18px;"></div>
+      <button class="btn block lg" id="btnStart">開始評分 →</button>
+      <div id="resumeNote" class="hidden" style="margin-top:14px; text-align:center; color:var(--muted); font-size:14px;"></div>
+    </div>
+    <div class="card card-pad no-print" style="font-size:14px; color:var(--muted);">
+      使用說明：勾選每一題實際做到的「品項」，系統會依規則自動判定完全／部分／未做到（畫面不顯示分數，避免影響判斷）。若考官另有判斷，可直接點三個級距按鈕手動調整。評分中資料自動儲存，重新整理或不慎關閉都不會遺失。
+    </div>
+
+    <div class="card card-pad no-print" id="importCard">
+      <div style="font-weight:800; color:var(--none);">📥 匯入名單（勿動）</div>
+      <div style="font-size:13px; color:var(--muted); margin:6px 0 12px;">
+        新的一場考試要換學生時使用。把「時程表」與「學號名冊」先另存成 CSV（Excel → 另存新檔 → CSV UTF-8），再選檔匯入，本站名單就會自動更新。
+      </div>
+      <label class="fld" style="margin-top:0;"><span>時程表 CSV（必要）</span>
+        <input type="file" id="impSchedule" accept=".csv,text/csv">
+      </label>
+      <label class="fld"><span>學號名冊 CSV（選填，欄位：學號、姓名）</span>
+        <input type="file" id="impRoster" accept=".csv,text/csv">
+      </label>
+      <div id="impPreview" style="margin-top:12px; font-size:13px;"></div>
+      <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" id="btnApplyImport" disabled>套用此名單</button>
+        <button class="btn grey" id="btnRestoreRoster">還原內建名單</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCORING SCREEN ============ -->
+  <section id="scoreScreen" class="hidden">
+    <h2 class="sec">目前考生</h2>
+    <div id="studentPanel"></div>
+
+    <div id="gradeBody">
+      <h2 class="sec">評分項目</h2>
+      <div id="itemsWrap"></div>
+
+      <h2 class="sec">整體表現</h2>
+      <div class="card card-pad">
+        <div class="rating" id="ratingRow"></div>
+      </div>
+
+      <h2 class="sec">考官回饋</h2>
+      <div class="card card-pad">
+        <div id="fbPresets" class="fb-presets"></div>
+        <textarea id="inpFeedback" placeholder="可直接點上方常用語加入；也可用平板鍵盤上的麥克風鍵語音輸入"></textarea>
+        <div class="fb-hint">💡 平板打字不便時：點鍵盤右下角的麥克風鍵即可語音轉文字（用法同手機），或直接點上方常用語按鈕。</div>
+      </div>
+
+      <h2 class="sec">總成績</h2>
+      <div class="card card-pad">
+        <div class="pass-row">
+          <div class="pass-btn" id="passYes" data-v="pass">通過</div>
+          <div class="pass-btn" id="passNo" data-v="fail">未通過</div>
+        </div>
+        <div style="text-align:center; color:var(--muted); font-size:14px; margin-top:10px;">
+          目前平均分：<b id="passAvg" style="color:var(--brand-d);">–</b>（僅供參考，通過與否由考官判定）
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MANAGE / RECORDS SCREEN ============ -->
+  <section id="manageScreen" class="hidden">
+    <h2 class="sec">本站評分名單</h2>
+    <div class="card" id="recList"></div>
+    <div style="height:14px;"></div>
+    <div class="btn-row">
+      <button class="btn block" id="btnExportCsv">⬇ 匯出 CSV 總表</button>
+      <button class="btn ghost block" id="btnPrintAll">🖨 列印全部 PDF</button>
+    </div>
+    <div style="height:10px;"></div>
+    <button class="btn grey block" id="btnBackScore">← 返回評分</button>
+    <div class="card card-pad no-print" style="font-size:13px; color:var(--muted); margin-top:16px;">
+      提醒：點名單中的姓名可回到該考生表單修改；「清除成績」只會清掉評分結果、名字保留，可重新評分。CSV 已含每題品項明細，可直接丟進 Excel 彙整；個別考生的 PDF 請在名單點「列印」，於列印畫面選擇「儲存成 PDF」。
+    </div>
+  </section>
+
+</div>
+
+<div class="actionbar no-print" id="actionBar" style="display:none;">
+  <div class="actionbar-in">
+    <button class="btn grey" id="btnHome">⤺ 換考站</button>
+    <button class="btn" id="btnSaveNext">✓ 儲存，下一位</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+"use strict";
+
+/* =========================================================================
+   1) OSCE 題庫設定（資料驅動）
+   -------------------------------------------------------------------------
+   新增考站或 AB 卷，只要照樣複製一份即可。每題欄位：
+     title / desc / type("checklist"|"binary"|"triple")
+     subitems（checklist 用）
+     thresholds{full,partial}（勾到>=full=完全，>=partial=部分，其餘=未做到）
+     ruleText（顯示的判級規則）
+     levels（triple/選填，各級距描述文字）
+   計分：完全=5、部分=4、未做到=3；平均分=各題得分總和 ÷ 題數
+   （分數不會顯示在評分按鈕上，只用於平均與匯出）
+   ========================================================================= */
+var SCORE = { full:5, partial:4, none:3 };
+var LEVEL_LABEL = { full:"完全做到", partial:"部分做到", none:"未做到" };
+
+var STATIONS = {
+  "warfarin": {
+    code: "A1",
+    name: "Warfarin 用藥衛教",
+    testType: "醫病溝通與衛教",
+    feedback: { pos:["有查看處方確認劑量","有確認適應症或病史","出血狀況與應對說明清楚","INR 意義解釋清楚","提醒手術或牙科（含洗牙）前主動告知"],
+                imp:["劑量未看清楚或說明有誤","監測方式（INR）未說明","藥物交互作用（西藥）未提醒","中草藥交互作用未確認","忘記服藥處理有誤"] },
+    items: [
+        { title:"跟病人打招呼並確認對方姓名", type:"checklist",
+          subitems:["跟病人打招呼","確認對方姓名"],
+          thresholds:{ full:2, partial:1 }, ruleText:"完全：2 項　部分：1 項" },
+        { title:"自我介紹", type:"binary" },
+        { title:"藥品名稱與適應症", type:"checklist",
+          subitems:["說明藥品名稱","說明適應症"],
+          thresholds:{ full:2, partial:1 }, ruleText:"完全：2 項　部分：1 項" },
+        { title:"藥品作用（藥理作用）", type:"checklist",
+          subitems:["抗凝血劑","防止血栓形成"],
+          thresholds:{ full:2, partial:1 }, ruleText:"完全：2 項　部分：1 項" },
+        { title:"藥品使用劑量與頻率", type:"checklist",
+          subitems:["說明使用劑量","說明使用頻率"],
+          thresholds:{ full:2, partial:1 }, ruleText:"完全：2 項　部分：1 項" },
+        { title:"藥品不良反應症狀（異常出血、血便、瘀青、過敏）與何時需立即就醫或儘速回診", type:"checklist",
+          subitems:["異常出血","血便","瘀青","過敏","說明何時需立即就醫或儘速回診"],
+          grade:{ require:[4], count:[0,1,2,3], full:3, partial:1 },
+          thresholds:{ full:3, partial:1 },
+          ruleText:"完全：症狀至少 3 項＋說明就醫時機　部分：症狀 1-2 項＋說明就醫時機　未做到：上述皆無" },
+        { title:"告知監測方式與說明", type:"checklist",
+          subitems:["定期抽 INR","解釋 INR 意義"],
+          thresholds:{ full:2, partial:1 }, ruleText:"完全：2 項　部分：1 項" },
+        { title:"就醫看診前須主動告知正在使用抗凝血藥（尤其手術／牙科治療前）", type:"checklist",
+          subitems:["手術治療前主動告知","牙科治療前主動告知"],
+          thresholds:{ full:2, partial:1 }, ruleText:"完全：手術與牙科都有說（2 項）　部分：只說到其一（1 項）" },
+        { title:"藥物交互作用", type:"checklist",
+          subitems:["西藥","保健／健康食品","中草藥"],
+          thresholds:{ full:3, partial:1 }, ruleText:"完全：3 項　部分：1-2 項" },
+        { title:"食物交互作用（飲食注意事項）", type:"triple",
+          desc:"食物範例：甘藍菜、花椰菜、蔓越莓汁、內臟…（綠色蔬菜如甘藍菜、花椰菜）",
+          levels:{ full:"至少 3 項食物，且必須包含綠色蔬菜", partial:"至少 3 項食物，未含綠色蔬菜", none:"僅說出 2 項（含）以下食物" } },
+        { title:"忘記服用藥品之處理", type:"checklist",
+          subitems:["說明補服時間","說明劑量處理"],
+          thresholds:{ full:2, partial:1 }, ruleText:"完全：2 項　部分：1 項" },
+        { title:"提供用藥指導單", type:"binary", desc:"完全：交付用藥指導單" },
+        { title:"藥物諮詢專線", type:"triple",
+          desc:"(04)22052121 轉 13154、15126",
+          levels:{ full:"明確指示電話號碼", partial:"僅告知可詢問", none:"無" } },
+        { title:"使用病人能夠理解的語言，避免專業術語", type:"checklist",
+          subitems:["使用病人能理解的語言","避免專業術語"],
+          thresholds:{ full:2, partial:1 }, ruleText:"完全：2 項　部分：1 項" },
+        { title:"呈現關心、尊重及傾聽病人是否不舒服", type:"checklist",
+          desc:"（未打斷病人說話、能與病人眼神接觸表現出關心）",
+          subitems:["呈現關心","呈現尊重","傾聽病人是否不舒服"],
+          thresholds:{ full:3, partial:1 }, ruleText:"完全：3 項　部分：1-2 項" }
+    ]
+  }
+};
+
+/* =========================================================================
+   2) 考生名單（AB 卷題目相同，只差考生；每站每卷各一份，順序寫死）
+   -------------------------------------------------------------------------
+   來源：115.09.11 實習生 OSCE 測驗時程表。每位考官固定一考場，名單即為該
+   考場跨三梯次由左到右的學生序；卷別 A＝A 組、卷別 B＝B 組。
+   warfarin（A1）題目尚未建置，名單已備妥，等題目加入即自動生效。
+   ========================================================================= */
+var ROSTER = {
+  "warfarin": {
+    "A": ["李亦安","房聖翔","陳佳慧","莊琬柔","何宜瑾","李韋綾","高宇暘","黃浩恩","曹祐嘉","王冠仁","古芸庭","林悅琳"],
+    "B": ["林言愛","林千蘏","宋俊毅","林泰宇","蘇泓維","游舒涵","林捷勝","陳筱涵","鄭鶴淋","賴芝融","曾馨儀","楊博丞"]
+  }
+};
+
+/* 內建名單快照 + 學號對照（可由「匯入名單」覆蓋）*/
+var BUILTIN_ROSTER = JSON.parse(JSON.stringify(ROSTER));
+var STUDENT_ID = {};
+function studentId(name){ return STUDENT_ID[(name||"").trim()]||""; }
+
+/* =========================================================================
+   3) 考官回饋常用短語（可自行增減）
+   ========================================================================= */
+/* 回饋常用短語，分「正向／待改進」兩類（內容之後依老師實際回饋更新）*/
+/* 通用短語（四站共用）。各站另有站別限定短語，見 STATIONS[key].feedback */
+var FEEDBACK_GROUPS = [
+  { label:"⭐ 優點", cls:"pos", items:[
+    "態度親切","溝通流暢","衛教完整","專業知識佳","善用衛教單張",
+    "語速平穩、口條清晰","與病人互動佳、有眼神接觸","有請病人回覆示教、確認理解","台風穩健、表達有自信" ] },
+  { label:"⚠️ 建議改善", cls:"imp", items:[
+    "未確認病人身分","未確認病人理解","未善用衛教單張","用法用量說明不足","注意事項說明不足",
+    "副作用說明不足","語速過快","建議增加衛教熟悉度","略顯緊張、建議多練習","時間掌控可再加強",
+    "回答可更精確、肯定","專業知識可再加強" ] }
+];
+/* 合併通用與站別限定短語 */
+function feedbackGroups(){
+  var ex = STATIONS[state.station] && STATIONS[state.station].feedback;
+  if(!ex) return FEEDBACK_GROUPS;
+  return FEEDBACK_GROUPS.map(function(g){
+    var add = g.cls==="pos" ? (ex.pos||[]) : g.cls==="imp" ? (ex.imp||[]) : [];
+    return { label:g.label, cls:g.cls, items:g.items.concat(add) };
+  });
+}
+
+var OVERALL_LABELS = [
+  {v:1, t:"差"}, {v:2, t:"待加強"}, {v:3, t:"普通"}, {v:4, t:"良好"}, {v:5, t:"優秀"}
+];
+
+/* =========================================================================
+   儲存
+   ========================================================================= */
+var LS_KEY = "osce_scorer_v2";
+var mem = null;
+function loadDB(){ try{ var raw=localStorage.getItem(LS_KEY); return raw?JSON.parse(raw):{}; }catch(e){ return mem||{}; } }
+function saveDB(db){ try{ localStorage.setItem(LS_KEY, JSON.stringify(db)); }catch(e){ mem=db; } }
+
+var state = { station:null, form:null, examiner:null, current:null, records:[],
+              activeRi:null, drafts:{},           // 有名單：以名單索引為主軸
+              editingIndex:null, savedLive:null }; // 無名單(手動)：沿用舊機制
+function sessionKey(){ return state.station + "||" + state.form; }
+function blankCurrent(){ return { student:"", items:{}, overall:null, pass:null, feedback:"", started:Date.now() }; }
+
+function persist(){
+  var db=loadDB(); var k=sessionKey();
+  db[k]=db[k]||{}; db[k].examiner=state.examiner; db[k].records=state.records;
+  if(hasRoster()){
+    if(state.activeRi!=null && state.current) state.drafts[state.activeRi]=state.current;
+    db[k].drafts=state.drafts; db[k].activeRi=state.activeRi;
+    db[k].manualDraft=null; db[k].editingIndex=null; db[k].editBuf=null;
+  }else{
+    db[k].editingIndex=state.editingIndex;
+    if(state.editingIndex!=null){ db[k].manualDraft=state.savedLive; db[k].editBuf=state.current; }
+    else { db[k].manualDraft=state.current; db[k].editBuf=null; }
+    db[k].drafts=null; db[k].activeRi=null;
+  }
+  saveDB(db);
+}
+function getExamSig(name){ var db=loadDB(); return (db.__signatures&&name)?db.__signatures[name]:null; }
+function setExamSig(name,data){ if(!name)return; var db=loadDB(); db.__signatures=db.__signatures||{}; db.__signatures[name]=data; saveDB(db); }
+function delExamSig(name){ var db=loadDB(); if(db.__signatures){ delete db.__signatures[name]; saveDB(db);} }
+
+/* =========================================================================
+   計分
+   ========================================================================= */
+function currentItems(){ return STATIONS[state.station].items; }
+function stationName(k){ var s=STATIONS[k]; return (s.code?s.code+" · ":"")+s.name; }
+/* 考間代號＝卷別字母＋站別數字（例：warfarin 站 code A1，B 卷 → B1）*/
+function roomLabel(k, form){ return form + (STATIONS[k].code||"").slice(1); }
+function roomName(k, form){ return roomLabel(k,form)+" · "+STATIONS[k].name; }
+function selRoom(){ var v=($("selStation").value||"").split("::"); return { station:v[0], form:v[1] }; }
+function stationsByCode(){ return Object.keys(STATIONS).sort(function(a,b){ return (STATIONS[a].code||"").localeCompare(STATIONS[b].code||""); }); }
+var VERSIONS=["A","B"]; // AB 卷內容相同，只差考生名單
+function autoLevel(item, checkedArr){
+  // 條件式判級
+  if(item.grade){
+    var gr=item.grade, j;
+    // groups：每個群組勾到 >=min 才算「達成一項」，再依達成群組數判完全／部分
+    if(gr.groups){
+      var achieved=0;
+      gr.groups.forEach(function(grp){
+        var c=0; grp.idx.forEach(function(i){ if(checkedArr[i]) c++; });
+        if(c>=grp.min) achieved++;
+      });
+      if(achieved>=gr.full) return "full";
+      if(achieved>=gr.partial) return "partial";
+      return "none";
+    }
+    // require＋count：require 全勾才給分，再依 count 數量分完全／部分
+    for(j=0;j<gr.require.length;j++){ if(!checkedArr[gr.require[j]]) return "none"; }
+    var cnt=0; for(j=0;j<gr.count.length;j++){ if(checkedArr[gr.count[j]]) cnt++; }
+    if(cnt>=gr.full) return "full";
+    if(cnt>=gr.partial) return "partial";
+    return "none";
+  }
+  var n=0; for(var i=0;i<checkedArr.length;i++){ if(checkedArr[i]) n++; }
+  if(n>=item.thresholds.full) return "full";
+  if(n>=item.thresholds.partial) return "partial";
+  return "none";
+}
+function itemScore(rec){ return (rec&&rec.level)?SCORE[rec.level]:null; }
+function computeAverage(){
+  var items=currentItems(), sum=0, graded=0;
+  for(var i=0;i<items.length;i++){ var s=itemScore(state.current.items[i]); if(s!==null){ sum+=s; graded++; } }
+  var total=items.length;
+  return { sum:sum, graded:graded, total:total, avgGraded: graded>0?(sum/graded):0 };
+}
+/* 必填檢查：每題都要評、整體表現、通過與否（回饋為選填）*/
+function missingFields(cur){
+  var items=currentItems(), miss=[], ung=[];
+  items.forEach(function(it,i){ var rec=cur.items&&cur.items[i]; if(!rec||!rec.level) ung.push(i+1); });
+  if(ung.length) miss.push("第 "+ung.join("、")+" 題未評分");
+  if(!cur.overall) miss.push("整體表現未選");
+  if(!cur.pass) miss.push("通過／未通過未選");
+  return miss;
+}
+function isIncomplete(r){
+  if(!r || r.absent) return false;
+  var items=currentItems();
+  for(var i=0;i<items.length;i++){ if(!(r.items&&r.items[i]&&r.items[i].level)) return true; }
+  return !r.overall || !r.pass;
+}
+
+/* =========================================================================
+   名單
+   ========================================================================= */
+function hasRoster(){ var r=ROSTER[state.station]; return !!(r && r[state.form] && r[state.form].length); }
+function rosterList(){ return ROSTER[state.station][state.form]; }
+function recIndexByRi(ri){ for(var i=0;i<state.records.length;i++){ if(state.records[i].ri===ri) return i; } return -1; }
+function recByRi(ri){ var i=recIndexByRi(ri); return i<0?null:state.records[i]; }
+function nextUnscoredRi(){ var L=rosterList().length; for(var ri=0;ri<L;ri++){ if(recIndexByRi(ri)<0) return ri; } return -1; }
+function allDone(){ return hasRoster() && nextUnscoredRi()<0; }
+/* 載入某位名單考生到評分緩衝（不切換畫面）*/
+function loadRi(ri){
+  state.activeRi=ri;
+  if(state.drafts[ri]){ state.current=state.drafts[ri]; }
+  else { var committed=recByRi(ri);
+    if(committed){ state.current=JSON.parse(JSON.stringify(committed)); }
+    else { state.current=blankCurrent(); state.current.student=rosterList()[ri]; }
+    state.drafts[ri]=state.current;
+  }
+}
+/* 從名單點開某位考生（切到評分畫面，可新評或修改）*/
+function openRi(ri){ loadRi(ri); persist(); buildScoreScreen(); goScore(); toast("開啟："+rosterList()[ri]); }
+
+/* =========================================================================
+   畫面切換
+   ========================================================================= */
+var $=function(id){ return document.getElementById(id); };
+function show(el){ el.classList.remove("hidden"); }
+function hide(el){ el.classList.add("hidden"); }
+
+function goStart(){
+  show($("startScreen")); hide($("scoreScreen")); hide($("manageScreen"));
+  $("actionBar").style.display="none"; $("avgBadge").style.display="none"; $("btnManage").style.display="none";
+  $("topTitle").textContent="OSCE 電子評分"; $("topSub").textContent="";
+  loadExamSigToCanvas(); refreshResumeNote();
+}
+function goScore(){
+  hide($("startScreen")); show($("scoreScreen")); hide($("manageScreen"));
+  $("actionBar").style.display="block"; $("avgBadge").style.display="block"; $("btnManage").style.display="";
+  var st=STATIONS[state.station];
+  $("topTitle").textContent=roomName(state.station, state.form);
+  $("topSub").textContent="考官："+state.examiner+"　"+st.testType;
+  updateRecCount();
+  window.scrollTo(0,0);
+}
+function updateRecCount(){
+  if(hasRoster()){ var scored=state.records.length, tot=rosterList().length; $("recCount").textContent=scored+"/"+tot; }
+  else $("recCount").textContent=state.records.length;
+}
+function goManage(){
+  hide($("startScreen")); hide($("scoreScreen")); show($("manageScreen"));
+  $("actionBar").style.display="none"; $("avgBadge").style.display="none"; $("btnManage").style.display="none";
+  renderRecords(); window.scrollTo(0,0);
+}
+
+/* =========================================================================
+   開始畫面
+   ========================================================================= */
+function initStart(){
+  var selS=$("selStation"); selS.innerHTML="";
+  // 合併考站與卷別：列出 8 個考間（A1~A4、B1~B4），依卷別分組、站號排序
+  VERSIONS.forEach(function(g){
+    stationsByCode().forEach(function(k){
+      var o=document.createElement("option"); o.value=k+"::"+g; o.textContent=roomName(k,g); selS.appendChild(o);
+    });
+  });
+  selS.onchange=refreshResumeNote; refreshResumeNote();
+}
+function refreshResumeNote(){
+  var r=selRoom(), k=r.station, f=r.form;
+  var db=loadDB(); var rec=db[k+"||"+f]; var note=$("resumeNote");
+  var cnt=(rec&&rec.records)?rec.records.length:0;
+  if(cnt>0){
+    note.classList.remove("hidden");
+    note.innerHTML="此考站已有 <b>"+cnt+"</b> 位評分紀錄"+(rec.examiner?"（考官："+rec.examiner+"）":"")+"，開始後會自動接續。<br>"+
+      "<button id='btnResetSess' class='btn danger mini' style='margin-top:10px;'>清除此卷資料，重新開始</button>"+
+      "<div style='font-size:12px; color:var(--muted); margin-top:6px;'>（此為場次重置，僅在開始畫面出現；考官評分過程中不會看到）</div>";
+    if(rec.examiner && !$("inpExaminer").value){ $("inpExaminer").value=rec.examiner; loadExamSigToCanvas(); }
+    $("btnResetSess").onclick=function(){
+      if(confirm("確定清除「"+roomName(k,f)+"」已存的所有評分資料並重新開始？此動作無法復原。")){
+        var d=loadDB(); delete d[k+"||"+f]; saveDB(d); refreshResumeNote(); toast("已清除，可重新開始");
+      }
+    };
+  }else{ note.classList.add("hidden"); note.innerHTML=""; }
+}
+
+$("inpExaminer").oninput=function(){ loadExamSigToCanvas(); };
+
+$("btnStart").onclick=function(){
+  var ex=$("inpExaminer").value.trim();
+  if(!ex){ toast("請先輸入考官姓名"); $("inpExaminer").focus(); return; }
+  if(examSigDirty){ setExamSig(ex, examSig.toDataURL("image/png")); }
+  var rm=selRoom(); state.station=rm.station; state.form=rm.form; state.examiner=ex;
+  var db=loadDB(); var rec=db[sessionKey()];
+  state.records=(rec&&rec.records)?rec.records:[];
+  state.drafts={}; state.activeRi=null; state.editingIndex=null; state.savedLive=null;
+  if(hasRoster()){
+    state.drafts=(rec&&rec.drafts)?rec.drafts:{};
+    var ari=(rec&&rec.activeRi!=null)?rec.activeRi:nextUnscoredRi();
+    if(ari<0 || ari>=rosterList().length){ state.activeRi=null; state.current=blankCurrent(); }
+    else loadRi(ari);
+  }else{
+    state.editingIndex=(rec&&rec.editingIndex!=null)?rec.editingIndex:null;
+    if(state.editingIndex!=null && state.editingIndex>=state.records.length) state.editingIndex=null;
+    if(state.editingIndex!=null){ state.current=(rec&&rec.editBuf)?rec.editBuf:blankCurrent(); state.savedLive=(rec&&rec.manualDraft)?rec.manualDraft:blankCurrent(); }
+    else { state.current=(rec&&rec.manualDraft)?rec.manualDraft:blankCurrent(); state.savedLive=null; }
+  }
+  buildScoreScreen(); goScore();
+};
+
+/* =========================================================================
+   評分畫面
+   ========================================================================= */
+function buildScoreScreen(){
+  renderStudentPanel();
+  renderItems();
+  renderRating();
+  renderPass();
+  renderPresets();
+  $("inpFeedback").value=state.current.feedback||"";
+  var editingRoster = hasRoster() && state.activeRi!=null && recByRi(state.activeRi);
+  $("btnSaveNext").textContent = (editingRoster || state.editingIndex!=null) ? "✓ 儲存修改" : "✓ 儲存，下一位";
+  updateAvg();
+}
+
+function renderStudentPanel(){
+  var panel=$("studentPanel"); panel.innerHTML="";
+
+  if(hasRoster()){
+    // 全部評完，且沒有指定某位在改
+    if(state.activeRi==null){
+      $("gradeBody").classList.add("hidden");
+      $("btnSaveNext").disabled=true; $("btnSaveNext").style.opacity=".5";
+      var d=document.createElement("div"); d.className="card done-card";
+      d.innerHTML='<div class="big">🎉 本卷 '+rosterList().length+' 位考生已全部評分完畢</div>'+
+        '<div style="color:var(--muted); margin-top:8px;">辛苦了！請點右上角的「名單」再檢查一遍，看看有沒有未完成的考核。</div>';
+      panel.appendChild(d);
+      return;
+    }
+    $("gradeBody").classList.remove("hidden");
+    $("btnSaveNext").disabled=false; $("btnSaveNext").style.opacity="1";
+    var list=rosterList(), ri=state.activeRi, nm=list[ri];
+    var isEdit=!!recByRi(ri);
+    state.current.student=nm;
+    var c=document.createElement("div"); c.className="stu-card"+(isEdit?" edit":"");
+    c.innerHTML='<div class="prog">'+(ri+1)+'<small>/ '+list.length+' 位</small></div>'+
+      '<div class="nm"><div class="lbl">'+(isEdit?"修改中考生（存檔後更新原紀錄）":"目前評分考生")+'</div><div class="nmv">'+esc(nm)+'</div></div>'+
+      (isEdit? '<div class="cancel"><button id="btnCancelEdit">取消<br>修改</button></div>'
+             : '<div class="skip"><button id="btnSkip">未到<br>跳過</button></div>');
+    panel.appendChild(c);
+    var hint=document.createElement("div"); hint.className="stu-confirm";
+    hint.textContent = isEdit ? "修改此考生評分，存檔後更新原紀錄；取消修改則不變動。"
+                              : "請先與進場考生核對姓名無誤，再開始評分。";
+    panel.appendChild(hint);
+    if(isEdit) $("btnCancelEdit").onclick=cancelActiveEdit; else $("btnSkip").onclick=skipActive;
+    return;
+  }
+
+  // ===== 手動輸入模式（無名單）=====
+  if(state.editingIndex!=null){
+    $("gradeBody").classList.remove("hidden");
+    $("btnSaveNext").disabled=false; $("btnSaveNext").style.opacity="1";
+    var ce=document.createElement("div"); ce.className="stu-card edit";
+    ce.innerHTML='<div class="prog">修改<small>第 '+(state.editingIndex+1)+' 位</small></div>'+
+      '<div class="nm"><div class="lbl">修改中考生（存檔後更新原紀錄）</div><div class="nmv">'+esc(state.current.student||"")+'</div></div>'+
+      '<div class="cancel"><button id="btnCancelEdit">取消<br>修改</button></div>';
+    panel.appendChild(ce); $("btnCancelEdit").onclick=cancelEdit; return;
+  }
+  $("gradeBody").classList.remove("hidden");
+  $("btnSaveNext").disabled=false; $("btnSaveNext").style.opacity="1";
+  var card=document.createElement("div"); card.className="card card-pad";
+  card.innerHTML='<label class="fld" style="margin-top:0;"><span>考生姓名</span>'+
+    '<input type="text" id="inpStudent" placeholder="請輸入考生姓名" autocomplete="off"></label>';
+  panel.appendChild(card);
+  var inp=$("inpStudent"); inp.value=state.current.student||"";
+  inp.oninput=function(){ state.current.student=this.value; persist(); };
+}
+
+/* 名單模式：標記目前這位未到並跳到下一位未評 */
+function skipActive(){
+  if(!hasRoster()||state.activeRi==null) return;
+  var ri=state.activeRi, nm=rosterList()[ri];
+  if(!confirm("將「"+nm+"」標記為未到並跳過？")) return;
+  var ix=recIndexByRi(ri);
+  var absentRec={ ri:ri, student:nm, absent:true, items:{}, overall:null, pass:null, feedback:"", avg:null, savedAt:Date.now() };
+  if(ix>=0) state.records[ix]=absentRec; else state.records.push(absentRec);
+  delete state.drafts[ri];
+  var nxt=nextUnscoredRi(); if(nxt<0){ state.activeRi=null; state.current=blankCurrent(); } else loadRi(nxt);
+  persist(); buildScoreScreen(); updateRecCount(); window.scrollTo(0,0); toast(nm+" 已標記未到");
+}
+/* 名單模式：取消對某位的修改（丟棄未存的變更）*/
+function cancelActiveEdit(){
+  if(state.activeRi!=null) delete state.drafts[state.activeRi];
+  var nxt=nextUnscoredRi(); if(nxt<0){ state.activeRi=null; state.current=blankCurrent(); } else loadRi(nxt);
+  persist(); goManage();
+}
+
+/* 手動模式：回到某筆紀錄修改 */
+function enterEdit(i){
+  var r=state.records[i]; if(!r) return;
+  if(state.editingIndex==null) state.savedLive=state.current;
+  state.editingIndex=i;
+  if(r.absent){ var buf=blankCurrent(); buf.student=r.student; state.current=buf; }
+  else { state.current=JSON.parse(JSON.stringify(r)); }
+  persist(); buildScoreScreen(); goScore();
+  toast("開始修改："+r.student);
+}
+function cancelEdit(){
+  state.current=state.savedLive||blankCurrent();
+  state.savedLive=null; state.editingIndex=null;
+  persist(); goManage();
+}
+
+function renderItems(){
+  var wrap=$("itemsWrap"); wrap.innerHTML=""; var items=currentItems();
+  items.forEach(function(item, idx){
+    if(!state.current.items[idx]){
+      state.current.items[idx]={ level:null, checked:[], override:false };
+      if(item.type==="checklist") state.current.items[idx].checked=item.subitems.map(function(){return false;});
+    }
+    var rec=state.current.items[idx];
+    var card=document.createElement("div"); card.className="item";
+    var head='<div class="item-head"><span class="item-no">'+(idx+1)+'</span><span class="item-title">'+esc(item.title)+'</span>';
+    if(item.desc) head+='<div class="item-desc">'+esc(item.desc)+'</div>';
+    if(item.ruleText) head+='<div class="item-rule">📏 '+esc(item.ruleText)+'</div>';
+    head+='</div>'; card.innerHTML=head;
+
+    if(item.type==="checklist"){
+      var sub=document.createElement("div"); sub.className="subitems";
+      item.subitems.forEach(function(txt, si){
+        var row=document.createElement("div"); row.className="sub"+(rec.checked[si]?" on":"");
+        row.innerHTML='<div class="box">'+(rec.checked[si]?"✓":"")+'</div><div class="txt">'+esc(txt)+'</div>';
+        row.onclick=function(){ toggleSub(idx, si, row); }; sub.appendChild(row);
+      });
+      card.appendChild(sub);
+      card.appendChild(levelRow(item, idx, false));
+      var tag=document.createElement("div"); tag.className="auto-tag"; tag.id="autotag_"+idx; card.appendChild(tag);
+    }else if(item.type==="binary"){ card.appendChild(levelRow(item, idx, true)); }
+    else if(item.type==="triple"){ card.appendChild(levelRow(item, idx, false)); }
+    wrap.appendChild(card); refreshLevelUI(idx);
+  });
+}
+
+function levelRow(item, idx, binary){
+  var row=document.createElement("div"); row.className="levels"; row.id="levels_"+idx;
+  var defs = binary ? [["full","完全做到"],["none","未做到"]]
+                    : [["full","完全做到"],["partial","部分做到"],["none","未做到"]];
+  defs.forEach(function(d){
+    var lv=document.createElement("div"); lv.className="lvl "+d[0]; lv.dataset.level=d[0]; lv.dataset.idx=idx;
+    var subtxt=(item.type==="triple" && item.levels && item.levels[d[0]]) ? item.levels[d[0]] : "";
+    lv.innerHTML=d[1]+(subtxt?'<small>'+esc(subtxt)+'</small>':'');
+    lv.onclick=function(){ manualLevel(idx, d[0]); };
+    row.appendChild(lv);
+  });
+  return row;
+}
+
+function toggleSub(idx, si, row){
+  var rec=state.current.items[idx]; rec.checked[si]=!rec.checked[si]; rec.override=false;
+  row.classList.toggle("on", rec.checked[si]); row.querySelector(".box").textContent=rec.checked[si]?"✓":"";
+  rec.level=autoLevel(currentItems()[idx], rec.checked); refreshLevelUI(idx); afterChange();
+}
+function manualLevel(idx, level){
+  var rec=state.current.items[idx], item=currentItems()[idx]; rec.level=level;
+  if(item.type==="checklist") rec.override=(autoLevel(item, rec.checked)!==level);
+  refreshLevelUI(idx); afterChange();
+}
+function refreshLevelUI(idx){
+  var rec=state.current.items[idx], row=$("levels_"+idx); if(!row) return;
+  Array.prototype.forEach.call(row.children, function(lv){ lv.classList.toggle("sel", lv.dataset.level===rec.level); });
+  var item=currentItems()[idx];
+  if(item.type==="checklist"){
+    var tag=$("autotag_"+idx); if(!tag) return;
+    if(rec.level){
+      var base;
+      if(item.grade){ base="自動判定：<b>"+LEVEL_LABEL[rec.level]+"</b>"; }
+      else { var cnt=0; rec.checked.forEach(function(c){ if(c) cnt++; });
+        base="已勾 <b>"+cnt+"</b> 項 → 自動判定：<b>"+LEVEL_LABEL[rec.level]+"</b>"; }
+      if(rec.override) base+=' <span class="override-tag">· 已由考官手動調整</span>';
+      tag.innerHTML=base;
+    }else tag.innerHTML="";
+  }
+}
+
+function renderRating(){
+  var row=$("ratingRow"); row.innerHTML="";
+  OVERALL_LABELS.forEach(function(o){
+    var el=document.createElement("div"); el.className="rate"+(state.current.overall===o.v?" sel":"");
+    el.innerHTML=o.t+'<small>'+o.v+' 分</small>';
+    el.onclick=function(){ state.current.overall=o.v; renderRating(); afterChange(); };
+    row.appendChild(el);
+  });
+}
+
+function renderPass(){
+  $("passYes").classList.toggle("sel-pass", state.current.pass==="pass");
+  $("passNo").classList.toggle("sel-fail", state.current.pass==="fail");
+}
+$("passYes").onclick=function(){ state.current.pass=state.current.pass==="pass"?null:"pass"; renderPass(); afterChange(); };
+$("passNo").onclick=function(){ state.current.pass=state.current.pass==="fail"?null:"fail"; renderPass(); afterChange(); };
+
+function renderPresets(){
+  var box=$("fbPresets"); box.innerHTML="";
+  feedbackGroups().forEach(function(g){
+    var grp=document.createElement("div"); grp.className="fb-group";
+    var lab=document.createElement("div"); lab.className="fb-grouplab "+g.cls; lab.textContent=g.label;
+    grp.appendChild(lab);
+    var row=document.createElement("div"); row.className="fb-presets";
+    g.items.forEach(function(p){
+      var chip=document.createElement("div"); chip.className="fb-chip "+g.cls; chip.textContent="＋ "+p;
+      chip.onclick=function(){ appendFeedback(p); };
+      row.appendChild(chip);
+    });
+    grp.appendChild(row); box.appendChild(grp);
+  });
+}
+function appendFeedback(t){
+  var cur=state.current.feedback||"";
+  if(cur && !/[\s。，,、；;]$/.test(cur)) cur+="；";
+  cur+=t; state.current.feedback=cur; $("inpFeedback").value=cur; persist();
+}
+$("inpFeedback").oninput=function(){ state.current.feedback=this.value; persist(); };
+
+function afterChange(){ updateAvg(); persist(); }
+function updateAvg(){
+  var c=computeAverage(); var txt=c.graded>0?c.avgGraded.toFixed(2):"–";
+  $("avgVal").textContent=txt;
+  $("avgBadge").querySelector("small").textContent="平均分 ("+c.graded+"/"+c.total+")";
+  $("passAvg").textContent=txt+(c.graded<c.total?"（尚有 "+(c.total-c.graded)+" 題未評）":"");
+}
+
+/* =========================================================================
+   考官簽名（開始畫面，一次即可）
+   ========================================================================= */
+var examSig, examCtx, examDrawing=false, examSigDirty=false;
+function initExamSig(){
+  examSig=$("examSig");
+  var ratio=window.devicePixelRatio||1, rect=examSig.getBoundingClientRect();
+  examSig.width=rect.width*ratio; examSig.height=200*ratio;
+  examCtx=examSig.getContext("2d"); examCtx.scale(ratio,ratio);
+  examCtx.lineWidth=2.5; examCtx.lineCap="round"; examCtx.strokeStyle="#12314a";
+  function pos(e){ var r=examSig.getBoundingClientRect(); var p=e.touches?e.touches[0]:e; return {x:p.clientX-r.left,y:p.clientY-r.top}; }
+  function start(e){ e.preventDefault(); examDrawing=true; var p=pos(e); examCtx.beginPath(); examCtx.moveTo(p.x,p.y); $("examSigHint").style.display="none"; }
+  function move(e){ if(!examDrawing)return; e.preventDefault(); var p=pos(e); examCtx.lineTo(p.x,p.y); examCtx.stroke(); examSigDirty=true; }
+  function end(){ if(examDrawing){ examDrawing=false; var name=$("inpExaminer").value.trim();
+     if(name){ setExamSig(name, examSig.toDataURL("image/png")); examSigDirty=false; $("examSigStatus").textContent="✓ 已儲存簽名"; }
+     else{ $("examSigStatus").textContent="請先輸入考官姓名，簽名才會儲存"; } } }
+  examSig.addEventListener("mousedown",start); examSig.addEventListener("mousemove",move); window.addEventListener("mouseup",end);
+  examSig.addEventListener("touchstart",start,{passive:false}); examSig.addEventListener("touchmove",move,{passive:false}); examSig.addEventListener("touchend",end);
+}
+function clearExamCanvas(){ if(examCtx) examCtx.clearRect(0,0,examSig.width,examSig.height); examSigDirty=false; $("examSigHint").style.display="block"; }
+$("btnClearExamSig").onclick=function(){
+  clearExamCanvas(); var name=$("inpExaminer").value.trim(); if(name) delExamSig(name);
+  $("examSigStatus").textContent="";
+};
+function loadExamSigToCanvas(){
+  if(!examCtx) return; clearExamCanvas();
+  var name=$("inpExaminer").value.trim(); var data=getExamSig(name);
+  if(data){ var img=new Image(); img.onload=function(){ var r=examSig.getBoundingClientRect(); examCtx.drawImage(img,0,0,r.width,200); }; img.src=data; $("examSigHint").style.display="none"; $("examSigStatus").textContent="✓ 已有此考官簽名"; }
+  else{ $("examSigStatus").textContent=""; }
+}
+
+/* =========================================================================
+   儲存 / 下一位
+   ========================================================================= */
+$("btnSaveNext").onclick=function(){
+  if(!state.current.student || !state.current.student.trim()){ toast("請輸入考生姓名"); var i=$("inpStudent"); if(i) i.focus(); return; }
+  // 必填提醒（不鎖死，可選擇先跳過稍後補）
+  var miss=missingFields(state.current);
+  if(miss.length){
+    if(!confirm("⚠ 這位考生尚有未完成：\n\n・"+miss.join("\n・")+"\n\n仍要先儲存並跳下一位嗎？\n（未完成者會在名單標示，可稍後點入補齊）")) return;
+  }
+  var c=computeAverage();
+  var snap=JSON.parse(JSON.stringify(state.current));
+  snap.avg=c.graded>0?+(c.avgGraded).toFixed(2):0;
+  snap.incomplete=miss.length>0;
+
+  // ===== 名單模式 =====
+  if(hasRoster()){
+    var ri=state.activeRi;
+    if(ri==null){ toast("請先從名單點選一位考生"); return; }
+    snap.ri=ri; snap.student=rosterList()[ri]; delete snap.absent;
+    var ix=recIndexByRi(ri), wasEdit=(ix>=0);
+    if(wasEdit){ snap.savedAt=state.records[ix].savedAt||Date.now(); snap.edited=Date.now(); state.records[ix]=snap; }
+    else { snap.savedAt=Date.now(); state.records.push(snap); }
+    delete state.drafts[ri];
+    var nxt=nextUnscoredRi();
+    if(nxt<0){ state.activeRi=null; state.current=blankCurrent(); } else loadRi(nxt);
+    persist(); updateRecCount();
+    if(wasEdit){ toast("已更新："+snap.student); goManage(); return; }
+    buildScoreScreen(); window.scrollTo(0,0);
+    toast("已儲存："+snap.student+"　平均 "+snap.avg.toFixed(2)+" 分");
+    return;
+  }
+
+  // ===== 手動模式 =====
+  if(state.editingIndex!=null){
+    var orig=state.records[state.editingIndex];
+    snap.savedAt=(orig&&orig.savedAt)?orig.savedAt:Date.now();
+    snap.edited=Date.now(); delete snap.absent;
+    state.records[state.editingIndex]=snap;
+    var nm=snap.student;
+    state.current=state.savedLive||blankCurrent(); state.savedLive=null; state.editingIndex=null;
+    persist(); updateRecCount();
+    toast("已更新："+nm); goManage(); return;
+  }
+  snap.savedAt=Date.now();
+  state.records.push(snap); state.current=blankCurrent(); persist();
+  buildScoreScreen(); updateRecCount(); window.scrollTo(0,0);
+  toast("已儲存："+snap.student+"　平均 "+snap.avg.toFixed(2)+" 分");
+};
+$("btnHome").onclick=function(){ persist(); goStart(); };
+$("btnManage").onclick=goManage;
+$("btnBackScore").onclick=function(){ buildScoreScreen(); goScore(); };
+$("btnPrintAll").onclick=printAll;
+
+/* =========================================================================
+   名單管理
+   ========================================================================= */
+function rowStatusHtml(r){
+  if(!r) return '尚未評分　<span class="edithint">✎ 點此開始評分</span>';
+  if(r.absent) return '🚫未到　<span class="edithint">✎ 點此回到表單評分</span>';
+  if(isIncomplete(r)) return '<span style="color:var(--accent); font-weight:800;">⚠ 未完成</span>　整體 '+(r.overall||"–")+' 分　'+fmtTime(r.savedAt)+'　<span class="edithint">✎ 點此補齊</span>';
+  var status=r.pass==="pass"?"✅通過":r.pass==="fail"?"❌未通過":"—";
+  return status+'　整體 '+(r.overall||"–")+' 分　'+fmtTime(r.savedAt)+'　<span class="edithint">✎ 點此修改</span>';
+}
+function incompleteCount(){
+  if(hasRoster()){ return rosterList().reduce(function(n,nm,ri){ return n+(isIncomplete(recByRi(ri))?1:0); },0); }
+  return state.records.reduce(function(n,r){ return n+(isIncomplete(r)?1:0); },0);
+}
+function renderRecords(){
+  var box=$("recList"); box.innerHTML="";
+  var inc=incompleteCount();
+  if(inc>0){
+    var w=document.createElement("div"); w.className="card-pad";
+    w.style.cssText="background:var(--partial-bg); color:var(--partial); font-weight:700; border-bottom:1px solid var(--line);";
+    w.innerHTML="⚠ 有 <b>"+inc+"</b> 位尚未完成評分，清空資料前請先點入補齊。";
+    box.appendChild(w);
+  }
+
+  // ===== 名單模式：列出全部考生（未評只有名字，評完顯示結果）=====
+  if(hasRoster()){
+    var list=rosterList();
+    list.forEach(function(nm, ri){
+      var r=recByRi(ri);
+      var el=document.createElement("div"); el.className="rec";
+      var who=document.createElement("div"); who.className="who";
+      who.innerHTML='<b>'+(ri+1)+'. '+esc(nm)+'</b><small>'+rowStatusHtml(r)+'</small>';
+      who.onclick=function(){ openRi(ri); };
+      el.appendChild(who);
+      var sc=document.createElement("div"); sc.className="sc";
+      sc.textContent=(r&&!r.absent&&r.avg!=null)?r.avg.toFixed(2):(r&&r.absent?"—":"·");
+      el.appendChild(sc);
+      if(r && !r.absent){
+        var pbtn=document.createElement("button"); pbtn.className="btn grey mini"; pbtn.textContent="列印"; pbtn.style.marginLeft="8px";
+        pbtn.onclick=function(e){ e.stopPropagation(); printRecord(r); }; el.appendChild(pbtn);
+      }
+      if(r){
+        var dbtn=document.createElement("button"); dbtn.className="btn danger mini"; dbtn.textContent="清除成績"; dbtn.style.marginLeft="6px";
+        dbtn.onclick=function(e){ e.stopPropagation();
+          if(confirm("清除「"+nm+"」的評分結果？名字會保留，可重新評分。")){
+            var ix=recIndexByRi(ri); if(ix>=0) state.records.splice(ix,1); delete state.drafts[ri];
+            if(state.activeRi==null){ var nxt=nextUnscoredRi(); if(nxt>=0) loadRi(nxt); }
+            persist(); renderRecords(); updateRecCount();
+          } };
+        el.appendChild(dbtn);
+      }
+      box.appendChild(el);
+    });
+    return;
+  }
+
+  // ===== 手動模式 =====
+  if(state.records.length===0){ box.innerHTML='<div class="card-pad" style="color:var(--muted); text-align:center;">尚無已儲存的考生</div>'; return; }
+  state.records.forEach(function(r, i){
+    var el=document.createElement("div"); el.className="rec";
+    var who=document.createElement("div"); who.className="who";
+    who.innerHTML='<b>'+esc(r.student)+'</b><small>'+rowStatusHtml(r)+'</small>';
+    who.onclick=function(){ enterEdit(i); };
+    el.appendChild(who);
+    var sc=document.createElement("div"); sc.className="sc"; sc.textContent=(r.absent?"—":(r.avg!=null?r.avg.toFixed(2):"–"));
+    el.appendChild(sc);
+    if(!r.absent){
+      var pbtn=document.createElement("button"); pbtn.className="btn grey mini"; pbtn.textContent="列印"; pbtn.style.marginLeft="8px";
+      pbtn.onclick=function(e){ e.stopPropagation(); printRecord(r); }; el.appendChild(pbtn);
+    }
+    var dbtn=document.createElement("button"); dbtn.className="btn danger mini"; dbtn.textContent="刪除"; dbtn.style.marginLeft="6px";
+    dbtn.onclick=function(e){ e.stopPropagation(); if(confirm("刪除 "+r.student+" 的紀錄？")){ state.records.splice(i,1); persist(); renderRecords(); updateRecCount(); } };
+    el.appendChild(dbtn);
+    box.appendChild(el);
+  });
+}
+
+/* =========================================================================
+   CSV
+   ========================================================================= */
+function buildCSV(){
+  var items=currentItems();
+  var head=["序","時間","考間","考站","卷別","考官","學號","考生姓名"];
+  items.forEach(function(it,i){
+    head.push("第"+(i+1)+"題_"+it.title+"_級距"); head.push("第"+(i+1)+"題_得分");
+    if(it.type==="checklist") head.push("第"+(i+1)+"題_品項明細");
+  });
+  head.push("平均分","整體表現","總成績","考官回饋");
+  var rows=[head];
+  // 名單模式依名單順序輸出（含未評/未到）；手動模式依儲存順序
+  var listPairs;
+  if(hasRoster()){ listPairs=rosterList().map(function(nm,ri){ return { seq:ri+1, name:nm, r:recByRi(ri) }; }); }
+  else { listPairs=state.records.map(function(r,i){ return { seq:i+1, name:r.student, r:r }; }); }
+  listPairs.forEach(function(p){
+    var r=p.r;
+    var row=[ p.seq, r?fmtTime(r.savedAt):"", roomLabel(state.station,state.form), STATIONS[state.station].name, state.form, state.examiner, studentId(p.name), p.name ];
+    items.forEach(function(it,i){
+      var rec=(r&&r.items&&r.items[i])||{};
+      var blank=(!r||r.absent);
+      row.push(blank?"":(rec.level?LEVEL_LABEL[rec.level]:""));
+      row.push(blank?"":(rec.level?SCORE[rec.level]:""));
+      if(it.type==="checklist"){
+        if(blank){ row.push(""); }
+        else{ row.push(it.subitems.map(function(t,si){ return (rec.checked&&rec.checked[si]?"✔":"✗")+t; }).join(" ｜ ")); }
+      }
+    });
+    row.push((r&&!r.absent&&r.avg!=null)?r.avg.toFixed(2):"");
+    row.push((r&&!r.absent)?(r.overall||""):"");
+    var totalStr=!r?"未評分":(r.absent?"缺考/未到":(r.pass==="pass"?"通過":r.pass==="fail"?"未通過":""));
+    if(r&&!r.absent&&isIncomplete(r)) totalStr=(totalStr?totalStr+" ":"")+"⚠未完成";
+    row.push(totalStr);
+    row.push((r&&r.feedback||"").replace(/\n/g," "));
+    rows.push(row);
+  });
+  return rows.map(function(rr){ return rr.map(function(c){ c=String(c==null?"":c); if(/[",\n]/.test(c)) c='"'+c.replace(/"/g,'""')+'"'; return c; }).join(","); }).join("\r\n");
+}
+function csvFilename(){ return "OSCE_"+roomLabel(state.station,state.form)+"_"+STATIONS[state.station].name+"_"+ymd()+".csv"; }
+$("btnExportCsv").onclick=function(){
+  if(state.records.length===0){ toast("尚無紀錄可匯出"); return; }
+  var csv="﻿"+buildCSV();
+  var blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}); var url=URL.createObjectURL(blob);
+  var a=document.createElement("a"); a.href=url; a.download=csvFilename();
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); },1500); toast("已匯出 CSV（"+state.records.length+" 位）");
+};
+
+/* =========================================================================
+   列印 / PDF（僅在名單頁對已存紀錄使用）
+   ========================================================================= */
+function sheetHtml(r){
+  var items=currentItems(), st=STATIONS[state.station], rowsHtml="";
+  items.forEach(function(it,i){
+    var rec=(r.items&&r.items[i])||{};
+    var mark=function(want){ return rec.level===want?'<span class="ck">■</span>':'□'; };
+    var subHtml="";
+    if(it.type==="checklist"){
+      subHtml='<div class="p-sub">'+ it.subitems.map(function(t,si){ return (rec.checked&&rec.checked[si]?"☑":"☐")+" "+esc(t); }).join("<br>") + '<br><i>'+esc(it.ruleText||"")+'</i></div>';
+    }else if(it.desc){ subHtml='<div class="p-sub">'+esc(it.desc)+'</div>'; }
+    else if(it.type==="triple" && it.levels){ subHtml='<div class="p-sub">完全：'+esc(it.levels.full)+'／部分：'+esc(it.levels.partial)+'／未做到：'+esc(it.levels.none)+'</div>'; }
+    var partialCell=(it.type==="binary")?'<td style="background:#333"></td>':'<td style="text-align:center">'+mark("partial")+'</td>';
+    rowsHtml+='<tr><td>'+(i+1)+'. '+esc(it.title)+subHtml+'</td>'+
+      '<td style="text-align:center">'+mark("full")+'</td>'+partialCell+'<td style="text-align:center">'+mark("none")+'</td>'+
+      '<td style="text-align:center">'+(rec.level?SCORE[rec.level]:"")+'</td></tr>';
+  });
+  var overallTxt=r.overall?(OVERALL_LABELS[r.overall-1].t+"（"+r.overall+"分）"):"—";
+  var sigData=getExamSig(state.examiner);
+  var sigImg=sigData?'<img src="'+sigData+'" style="height:46px; vertical-align:middle;">':'<span style="display:inline-block; width:180px; border-bottom:1px solid #000;">&nbsp;</span>';
+  return '<div class="p-sheet">'+
+    '<h1>'+esc(roomName(state.station, state.form))+'　評分表</h1>'+
+    '<div style="font-size:12px;">■測驗項目：'+esc(st.testType)+'</div>'+
+    '<div class="p-meta"><div><b>考生：</b>'+esc(r.student)+'</div>'+
+       '<div><b>總成績：</b>'+(r.pass==="pass"?"■通過　□未通過":r.pass==="fail"?"□通過　■未通過":"□通過　□未通過")+'</div></div>'+
+    '<table><thead><tr><th style="width:56%">評分項目</th><th>完全<br>做到</th><th>部分<br>做到</th><th>未<br>做到</th><th>得分</th></tr></thead>'+
+    '<tbody>'+rowsHtml+'</tbody></table>'+
+    '<div style="margin-top:8px; font-size:13px;"><b>平均分：</b>'+(r.avg!=null?r.avg.toFixed(2):"—")+'　／　<b>整體表現：</b>'+overallTxt+'</div>'+
+    '<div style="margin-top:6px; font-size:13px;"><b>考官回饋：</b>'+esc(r.feedback||"")+'</div>'+
+    '<div style="margin-top:18px; font-size:13px; text-align:right;"><b>評分考官簽名：</b>'+sigImg+'　（'+esc(state.examiner)+'）</div>'+
+   '</div>';
+}
+/* 存 PDF 的檔名基底，與 CSV 同一套命名（例：OSCE_B1_Warfarin 用藥衛教_20260911）*/
+function pdfBaseName(){ return "OSCE_"+roomLabel(state.station,state.form)+"_"+STATIONS[state.station].name+"_"+ymd(); }
+/* 列印時把網頁標題暫設為檔名，瀏覽器「儲存成 PDF」會沿用，印完還原 */
+function printWithName(html, name){
+  $("printArea").innerHTML=html;
+  var prev=document.title; document.title=name;
+  var restored=false, restore=function(){ if(restored) return; restored=true; document.title=prev; window.removeEventListener("afterprint",restore); };
+  window.addEventListener("afterprint",restore);
+  setTimeout(function(){ window.print(); },100);
+  setTimeout(restore, 60000);
+}
+function printRecord(r){ printWithName(sheetHtml(r), pdfBaseName()+"_"+(r.student||"考生")); }
+/* 列印整站已評考生（依名單順序，一人一頁）*/
+function printAll(){
+  var list;
+  if(hasRoster()){ list=rosterList().map(function(nm,ri){ return recByRi(ri); }).filter(function(r){ return r && !r.absent; }); }
+  else { list=state.records.filter(function(r){ return !r.absent; }); }
+  if(list.length===0){ toast("尚無已評分的考生可列印"); return; }
+  printWithName(list.map(sheetHtml).join(""), pdfBaseName());
+  toast("已產生 "+list.length+" 份，請於列印畫面選「儲存成 PDF」");
+}
+
+/* =========================================================================
+   工具 / 啟動
+   ========================================================================= */
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function fmtTime(t){ if(!t)return""; var d=new Date(t); return d.getFullYear()+"/"+p2(d.getMonth()+1)+"/"+p2(d.getDate())+" "+p2(d.getHours())+":"+p2(d.getMinutes()); }
+function ymd(){ var d=new Date(); return d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate()); }
+function p2(n){ return n<10?"0"+n:""+n; }
+var toastTimer;
+function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove("show"); },2200); }
+
+/* =========================================================================
+   匯入名單（時程表 CSV + 學號名冊 CSV）
+   ========================================================================= */
+function parseCSV(text){
+  text=text.replace(/^﻿/,''); var rows=[],row=[],f="",q=false,i=0,n=text.length;
+  while(i<n){ var ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){ f+='"'; i+=2; continue;} q=false; i++; continue;} f+=ch; i++; continue; }
+    if(ch==='"'){ q=true; i++; continue; }
+    if(ch===','){ row.push(f); f=""; i++; continue; }
+    if(ch==='\r'){ i++; continue; }
+    if(ch==='\n'){ row.push(f); rows.push(row); row=[]; f=""; i++; continue; }
+    f+=ch; i++;
+  }
+  if(f!==""||row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+/* 從時程表 CSV 解析各考間順序：掃描 A1~A4／B1~B4 標記，取其後 4 格為該梯次學生 */
+function parseSchedule(rows){
+  var rooms={};
+  rows.forEach(function(r){
+    r.forEach(function(cell,ci){
+      var c=(cell||"").trim();
+      if(/^[AB][1-4]$/.test(c)){
+        var slots=r.slice(ci+1,ci+5).map(function(x){return (x||"").trim();}).filter(function(x){return x;});
+        rooms[c]=(rooms[c]||[]).concat(slots);
+      }
+    });
+  });
+  return rooms;
+}
+/* 學號名冊 CSV → {姓名:學號} */
+function parseIdRoster(rows){
+  if(!rows.length) return {};
+  var head=rows[0].map(function(x){return (x||"").trim();});
+  var idc=head.indexOf("學號"), nc=head.indexOf("姓名"), start=1;
+  if(idc<0||nc<0){ // 無表頭：猜哪欄像學號（含數字多）
+    idc=0; nc=1; start=0;
+    var d0=0,d1=0; rows.slice(0,5).forEach(function(r){ if(/\d/.test(r[0]||""))d0++; if(/\d/.test(r[1]||""))d1++; });
+    if(d1>d0){ idc=1; nc=0; }
+  }
+  var map={};
+  rows.slice(start).forEach(function(r){ var nm=(r[nc]||"").trim(), id=(r[idc]||"").trim(); if(nm) map[nm]=id; });
+  return map;
+}
+function currentStationKey(){ return Object.keys(STATIONS)[0]; }
+function stationRoomNums(){ var s=STATIONS[currentStationKey()]; var num=(s.code||"").slice(1); return {A:"A"+num, B:"B"+num}; }
+function applyImportedRoster(){
+  var db=loadDB(), imp=db.__imported; if(!imp) return;
+  if(imp.students) STUDENT_ID=imp.students;
+  var k=currentStationKey();
+  if(imp.roster && imp.roster[k]) ROSTER[k]=imp.roster[k];
+}
+
+var _impRooms=null, _impStudents=null;
+function refreshImportPreview(){
+  var box=$("impPreview"); if(!box) return;
+  if(!_impRooms){ box.innerHTML=""; $("btnApplyImport").disabled=true; return; }
+  var rn=stationRoomNums(), a=_impRooms[rn.A]||[], b=_impRooms[rn.B]||[];
+  var idN=_impStudents?Object.keys(_impStudents).length:0;
+  var html='<div style="background:#f7f9fa; border:1px solid var(--line); border-radius:8px; padding:10px 12px;">'+
+    '<b>本站將載入：</b><br>'+
+    '<b>'+esc(rn.A)+' 卷（'+a.length+' 人）：</b>'+esc(a.join("、")||"（未找到）")+'<br>'+
+    '<b>'+esc(rn.B)+' 卷（'+b.length+' 人）：</b>'+esc(b.join("、")||"（未找到）")+
+    (idN?'<br><span style="color:var(--muted);">已讀入學號 '+idN+' 筆</span>':'<br><span style="color:var(--muted);">未提供學號名冊（可留空）</span>')+'</div>';
+  box.innerHTML=html;
+  $("btnApplyImport").disabled = !(a.length||b.length);
+}
+function readFileText(input, cb){ var f=input.files&&input.files[0]; if(!f){ cb(null); return; } var rd=new FileReader(); rd.onload=function(){ cb(rd.result); }; rd.onerror=function(){ cb(null); }; rd.readAsText(f,"utf-8"); }
+if($("impSchedule")) $("impSchedule").onchange=function(){ readFileText(this,function(t){ try{ _impRooms=t?parseSchedule(parseCSV(t)):null; }catch(e){ _impRooms=null; toast("時程表讀取失敗"); } refreshImportPreview(); }); };
+if($("impRoster")) $("impRoster").onchange=function(){ readFileText(this,function(t){ try{ _impStudents=t?parseIdRoster(parseCSV(t)):null; }catch(e){ _impStudents=null; } refreshImportPreview(); }); };
+if($("btnApplyImport")) $("btnApplyImport").onclick=function(){
+  if(!_impRooms) return;
+  var k=currentStationKey(), rn=stationRoomNums();
+  var newRoster={ A:_impRooms[rn.A]||[], B:_impRooms[rn.B]||[] };
+  if(!newRoster.A.length && !newRoster.B.length){ toast("找不到本站名單"); return; }
+  if(!confirm("套用新名單會清除本站現有的評分紀錄（換場次用），確定嗎？")) return;
+  var db=loadDB();
+  db.__imported=db.__imported||{roster:{},students:{}};
+  db.__imported.roster[k]=newRoster;
+  if(_impStudents) db.__imported.students=Object.assign(db.__imported.students||{}, _impStudents);
+  delete db[k+"||A"]; delete db[k+"||B"]; // 清掉舊場次紀錄
+  saveDB(db);
+  applyImportedRoster();
+  toast("已套用新名單："+rn.A+" "+newRoster.A.length+" 人、"+rn.B+" "+newRoster.B.length+" 人");
+  refreshResumeNote();
+};
+if($("btnRestoreRoster")) $("btnRestoreRoster").onclick=function(){
+  if(!confirm("還原成內建名單？（會清除已匯入的名單設定）")) return;
+  var db=loadDB(); delete db.__imported; saveDB(db);
+  var k=currentStationKey(); ROSTER[k]=JSON.parse(JSON.stringify(BUILTIN_ROSTER[k]||{})); STUDENT_ID={};
+  _impRooms=null; _impStudents=null; if($("impSchedule"))$("impSchedule").value=""; if($("impRoster"))$("impRoster").value="";
+  refreshImportPreview(); refreshResumeNote(); toast("已還原內建名單");
+};
+
+/* 字級調整（標準 / 大 / 特大，三顆分開），存於本機 */
+function applyFont(i){
+  i=Math.max(0,Math.min(2, i|0));
+  document.body.classList.remove("sz2","sz3");
+  if(i===1) document.body.classList.add("sz2"); else if(i===2) document.body.classList.add("sz3");
+  var segs=document.querySelectorAll("#fontSeg button");
+  Array.prototype.forEach.call(segs,function(bt){ bt.classList.toggle("on", parseInt(bt.dataset.sz,10)===i); });
+  try{ localStorage.setItem("osce_font", i); }catch(e){}
+}
+Array.prototype.forEach.call(document.querySelectorAll("#fontSeg button"),function(bt){
+  bt.onclick=function(){ applyFont(parseInt(bt.dataset.sz,10)); };
+});
+function initFont(){ var i=0; try{ i=parseInt(localStorage.getItem("osce_font")||"0",10)||0; }catch(e){} applyFont(i); }
+
+window.addEventListener("load",function(){ applyImportedRoster(); initFont(); initStart(); initExamSig(); goStart(); });
+</script>
+</body>
+</html>
